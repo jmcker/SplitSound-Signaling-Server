@@ -27,7 +27,7 @@ var options = {
   port: Number(argv.p) || Number(process.env.SOCKETCLUSTER_PORT) || 8000,
   // You can switch to 'sc-uws' for improved performance.
   wsEngine: process.env.SOCKETCLUSTER_WS_ENGINE || 'ws',
-  appName: argv.n || process.env.SOCKETCLUSTER_APP_NAME || null,
+  appName: 'SplitSound-Signaling-Server',
   workerController: workerControllerPath || path.join(__dirname, 'worker.js'),
   brokerController: brokerControllerPath || path.join(__dirname, 'broker.js'),
   workerClusterController: workerClusterControllerPath || null,

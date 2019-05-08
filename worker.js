@@ -6,54 +6,206 @@ var morgan = require('morgan');
 var healthChecker = require('sc-framework-health-check');
 
 class Worker extends SCWorker {
-  run() {
-    console.log('   >> Worker PID:', process.pid);
-    var environment = this.options.environment;
+    run() {
+        console.log('   >> Worker PID:', process.pid);
+        var environment = this.options.environment;
 
-    var app = express();
+        /**
+         * Log debug messages.
+         * Scoped to run function since we need environment
+         * @param {*} obj Message or object to be logged.
+         */
+        function log(obj) {
+            if (environment === 'dev') {
+                console.log(obj);
+            }
+        }
 
-    var httpServer = this.httpServer;
-    var scServer = this.scServer;
+        var app = express();
 
-    if (environment === 'dev') {
-      // Log every HTTP request. See https://github.com/expressjs/morgan for other
-      // available formats.
-      app.use(morgan('dev'));
-    }
-    app.use(serveStatic(path.resolve(__dirname, 'public')));
+        var httpServer = this.httpServer;
+        var scServer = this.scServer;
 
-    // Add GET /health-check express route
-    healthChecker.attach(this, app);
+        if (environment === 'dev') {
+            // Log every HTTP request. See https://github.com/expressjs/morgan for other
+            // available formats.
+            app.use(morgan('dev'));
+        }
+        app.use(serveStatic(path.resolve(__dirname, 'public')));
 
-    httpServer.on('request', app);
+        // Add GET /health-check express route
+        healthChecker.attach(this, app);
 
-    var count = 0;
+        httpServer.on('request', app);
 
-    /*
-      In here we handle our incoming realtime connections and listen for events.
-    */
-    scServer.on('connection', function (socket) {
+        var count = 0;
 
-      // Some sample logic to show how to handle client events,
-      // replace this with your own logic
-
-      socket.on('sampleClientEvent', function (data) {
-        count++;
-        console.log('Handled sampleClientEvent', data);
-        scServer.exchange.publish('sample', count);
-      });
-
-      var interval = setInterval(function () {
-        socket.emit('random', {
-          number: Math.floor(Math.random() * 5)
+        scServer.addMiddleware(scServer.MIDDLEWARE_SUBSCRIBE, (req, next) => {
+            // Allow subscribe to anything during development
+            // TODO: Only allow subscription to own private channel
+            if (true || req.socket.id === req.channel) {
+                next(); // Allow
+            } else {
+                let msg = `${req.socket.id} is not allowed to subscribe to ${req.channel}`;
+                log(msg);
+                next(msg); // Block
+            }
         });
-      }, 1000);
 
-      socket.on('disconnect', function () {
-        clearInterval(interval);
-      });
-    });
-  }
+        scServer.addMiddleware(scServer.MIDDLEWARE_PUBLISH_IN, (req, next) => {
+            // Disallow direct broadcasting right now
+            if (true) {
+                next(); // Allow
+            } else {
+                let msg = `${req.socket.id} is not allowed to publish to ${req.channel}`;
+                log(msg);
+                next(msg); // Block
+            }
+        });
+
+        scServer.addMiddleware(scServer.MIDDLEWARE_PUBLISH_OUT, (req, next) => {
+            // console.log(req);
+            next();
+        });
+
+        /**
+         * Handle incoming connections and listen for events.
+         *
+         * Every non-private published message should include the following:
+         * {
+         *     action: string,
+         *     channel: string,
+         *     sender: string
+         * }
+        */
+        scServer.on('connection', (socket) => {
+
+            log(`${socket.id} connected.`);
+
+            /**
+             * Incoming format:
+             * {
+             *     channel: string
+             * }
+             */
+            socket.on('join', (obj) => {
+                if (!obj || !obj.channel || obj.channel.length === 0) {
+                    log('REJECTED: Bad join request.');
+                    log(obj);
+                    return;
+                }
+
+                log(`Client ID ${socket.id} joined channel ${obj.channel}`);
+                socket.emit('joined', { channel: obj.channel });
+
+                // Announce the join to everyone
+                scServer.exchange.publish(obj.channel, {
+                    action: 'join',
+                    channel: obj.channel,
+                    sender: socket.id
+                });
+            });
+
+            /**
+             * Incoming format:
+             * {
+             *     channel: string (this must be a recipient's private channel),
+             *     offer: object
+             * }
+             */
+            socket.on('offer', (obj) => {
+                if (!obj || !obj.channel || !obj.offer) {
+                    log('REJECTED: Bad offer message.');
+                    log(obj);
+                    return;
+                }
+
+                // Since these should only ever be private messages,
+                // don't include channel field. Messages without the field
+                // will be ignored by clients if sent to a broadcast channel
+                scServer.exchange.publish(obj.channel, {
+                    action: 'offer',
+                    sender: socket.id,
+                    offer: obj.offer
+                });
+            });
+
+            /**
+             * Incoming format:
+             * {
+             *     channel: string (this must be a recipient's private channel),
+             *     answer: object
+             * }
+             */
+            socket.on('answer', (obj) => {
+                if (!obj || !obj.channel || !obj.answer) {
+                    log('REJECTED: Bad answer message.');
+                    log(obj);
+                    return;
+                }
+
+                // Since these should only ever be private messages,
+                // don't include channel field. Messages without the field
+                // will be ignored by clients if sent to a broadcast channel
+                scServer.exchange.publish(obj.channel, {
+                    action: 'answer',
+                    sender: socket.id,
+                    answer: obj.answer
+                });
+            });
+
+            /**
+             * Incoming format:
+             * {
+             *     channel: string (this must be a recipient's private channel),
+             *     candidate: object
+             * }
+             */
+            socket.on('candidate', (obj) => {
+                if (!obj || !obj.channel || !obj.candidate) {
+                    log('REJECTED: Bad candidate message.');
+                    log(obj);
+                    return;
+                }
+
+                // Since these should only ever be private messages,
+                // don't include channel field. Messages without the field
+                // will be ignored by clients if sent to a broadcast channel
+                scServer.exchange.publish(obj.channel, {
+                    action: 'candidate',
+                    sender: socket.id,
+                    candidate: obj.candidate
+                });
+            });
+
+            /**
+             * Incoming format:
+             * {
+             *     channel: string
+             * }
+             */
+            socket.on('leave', (obj) => {
+                if (!obj || !obj.channel || obj.channel.length === 0) {
+                    log('REJECTED: Bad leave request.');
+                    log(obj);
+                    return;
+                }
+
+                log(`${socket.id} left channel ${obj.channel}`);
+
+                // Announce the join to everyone
+                scServer.exchange.publish(obj.channel, {
+                    action: 'leave',
+                    channel: obj.channel,
+                    sender: socket.id
+                });
+            });
+
+            socket.on('disconnect', () => {
+                log(`${socket.id} disconnected.`);
+            });
+        });
+    }
 }
 
 new Worker();

@@ -1,99 +1,211 @@
 <!DOCTYPE html>
 <html>
-  <head>
+
+<head>
     <title>SocketCluster</title>
     <link href="//fonts.googleapis.com/css?family=Roboto:100,300" rel="stylesheet" type="text/css">
     <link rel="icon" type="image/png" href="/favicon.ico">
     <script type="text/javascript" src="/socketcluster.js"></script>
     <style>
-      html {
-        height: 100%;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        color: #666666;
-        display: table;
-        font-weight: 100;
-        font-family: 'Roboto', Helvetica, sans-serif;
-      }
-      a {
-        font-weight: 300;
-        color: #72B963;
-      }
-      .container {
-        display: table-cell;
-        text-align: center;
-        vertical-align: middle;
-      }
-      .content {
-        text-align: center;
-        display: inline-block;
-      }
+        html {
+            height: 100%;
+        }
 
-      .title {
-        font-size: 96px;
-        margin-bottom: 20px;
-      }
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            color: #666666;
+            display: table;
+            font-weight: 100;
+            font-family: 'Roboto', Helvetica, sans-serif;
+        }
 
-      .text {
-        font-size: 24px;
-        margin-bottom: 20px;
-      }
-      .small {
-        font-size: 18px;
-      }
+        a {
+            font-weight: 300;
+            color: #72B963;
+        }
 
-      .github-button {
-        padding-top: 10px;
-      }
+        .container {
+            display: table-cell;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .content {
+            text-align: center;
+            display: inline-block;
+        }
+
+        .title {
+            font-size: 96px;
+            margin-bottom: 20px;
+        }
+
+        .text {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .small {
+            font-size: 18px;
+        }
+
+        .github-button {
+            padding-top: 10px;
+        }
     </style>
-  </head>
-  <body>
+</head>
+
+<body>
     <div class="container">
-      <div class="content">
-        <div class="title">
-          SocketCluster
+        <div class="content">
+            <div class="title">
+                SocketCluster
+            </div>
+            <div class="text">
+                Design is not just what it looks like and feels like. Design is how it works. &mdash; Steve Jobs
+            </div>
+            <div class="small">
+                <a href="http://socketcluster.io/#!/docs/getting-started">Getting Started</a> <strong>&middot;</strong>
+                <a href="http://socketcluster.io/#!/docs">Documentation</a>
+            </div>
+            <p class="github-button">
+                <iframe
+                    src="https://ghbtns.com/github-btn.html?user=socketcluster&repo=socketcluster&type=star&count=true&size=large"
+                    frameborder="0" scrolling="0" width="160px" height="30px"></iframe>
+            </p>
         </div>
-        <div class="text">
-          Design is not just what it looks like and feels like. Design is how it works. &mdash; Steve Jobs
-        </div>
-        <div class="small">
-          <a href="http://socketcluster.io/#!/docs/getting-started">Getting Started</a> <strong>&middot;</strong>
-          <a href="http://socketcluster.io/#!/docs">Documentation</a>
-        </div>
-        <p class="github-button">
-          <iframe src="https://ghbtns.com/github-btn.html?user=socketcluster&repo=socketcluster&type=star&count=true&size=large" frameborder="0" scrolling="0" width="160px" height="30px"></iframe>
-        </p>
-      </div>
     </div>
     <script type="text/javascript">
-      // Initiate the connection to the server
-      var socket = socketCluster.connect();
+        // Initiate the connection to the server
 
-      socket.on('error', function (err) {
-        console.error(err);
-      });
+        function trace(text) {
+            text = text.trim();
+            const now = (performance.now() / 1000).toFixed(3);
 
-      socket.on('connect', function () {
-        console.log('Socket is connected');
-      });
+            console.log(now, text);
+        }
 
-      socket.on('random', function (data) {
-        console.log('Received "random" event with data: ' + data.number);
-      });
+        class Signaller {
+            constructor(hostname, port) {
+                this.hostname = hostname;
+                this.port = port;
+                this.privateChannel = null;
+                this.channels = [];
+                this.peers = {};
 
-      var sampleChannel = socket.subscribe('sample');
+                this.socket = socketCluster.connect({
+                    hostname: hostname,
+                    port: port,
+                    secure: false
+                });
 
-      sampleChannel.on('subscribeFail', function (err) {
-        console.error('Failed to subscribe to the sample channel due to error: ' + err);
-      });
+                this.socket.on('error', (err) => {
+                    console.error(err);
+                });
 
-      sampleChannel.watch(function (num) {
-        console.log('Sample channel message:', num);
-      });
+                this.socket.on('connect', () => {
+                    trace(`Successfully connected with ID: ${this.socket.id}`);
+
+                    trace(`Subscribing to private channel ${this.socket.id}...`);
+                    this.privateChannel = this.socket.subscribe(this.socket.id);
+                    this.privateChannel.watch(this.handlePrivateChannel.bind(this));
+                });
+
+                this.socket.on('subscribeStateChange', (obj) => {
+                    if (obj.newState === 'subscribed') {
+                        trace(`Successfully subscribed to ${obj.channel}.`);
+                    } else {
+                        trace(`Subscription state change for channel ${obj.channel}: ${obj.oldState} => ${obj.newState}`)
+                    }
+                });
+
+                this.socket.on('joined', (obj) => {
+                    trace(`Successfully joined channel ${obj.channel}.`);
+
+                    this.channels.push(obj.channel);
+                });
+
+                this.socket.on('full', (obj) => {
+                    console.warn(`Room ${obj.channel} is full.`);
+                });
+            }
+
+            handlePrivateChannel(obj) {
+                trace(`Private message from ${obj.sender}:`);
+                console.log(obj);
+
+                // Ignore anything malformed
+                if (!obj.action || !obj.sender) {
+                    console.warn('Malformed channel message.');
+                    console.log(obj);
+                    return;
+                }
+
+                if (obj.action === 'offer') {
+
+                } else if (obj.action === 'answer') {
+
+                } else if (obj.action === 'candidate') {
+
+                } else {
+                    console.warn(`Unrecognized private channel action: ${obj.action}`);
+                    return;
+                }
+            }
+
+            handleChannel(obj) {
+                // Ignore anything malformed
+                if (!obj.action || !obj.channel || !obj.sender) {
+                    console.warn('Malformed channel message.');
+                    console.log(obj);
+                    return;
+                }
+
+                // Ignore our own messages
+                if (obj.sender === this.socket.id) {
+                    return;
+                }
+
+                trace(`Room message from ${obj.sender}:`);
+                console.log(obj);
+            }
+
+            joinChannel(channel) {
+                if (this.channels.includes(channel)) {
+                    console.warn(`Already subscribed to ${channel}.`);
+                    return;
+                }
+
+                this.socket.emit('join', { channel: channel });
+
+                trace(`Subscribing to channel ${channel}...`);
+                this.socket.subscribe(channel);
+                this.socket.watch(channel, this.handleChannel.bind(this));
+            }
+
+            leaveChannel(channel) {
+                if (!this.channels.includes(channel)) {
+                    trace(`Not subscribed to ${channel}`);
+                    return;
+                }
+
+                trace(`Unsubscribing from channel ${channel}...`);
+                this.socket.unwatch(channel);
+                this.socket.unsubscribe(channel);
+            }
+
+            leaveAllChannels() {
+                this.channels.forEach((val) => {
+                    this.leaveChannel(val);
+                });
+            }
+        }
+
+        let signaller = new Signaller('localhost', 8000);
     </script>
-  </body>
+</body>
+
 </html>
