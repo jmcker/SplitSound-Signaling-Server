@@ -1,5 +1,5 @@
-SocketCluster Sample App
+SplitSound Signaling Server
 ======
 
-This is a sample SocketCluster app.
+SocketCluster-based signaling server for SplitSound.
 

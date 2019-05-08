@@ -1,8 +1,12 @@
 {
-  "name": "socketcluster-sample",
-  "description": "A sample SocketCluster app",
-  "version": "1.0.0",
+  "name": "splitsound-signaling-server",
+  "description": "SocketCluster signaling server for SplitSound.",
+  "version": "0.2.0",
   "contributors": [
+    {
+      "name": "Symboxtra Software",
+      "email": "dev.symboxtra@gmail.com"
+    },
     {
       "name": "Jonathan Gros-Dubois",
       "email": "grosjona@yahoo.com.au"
@@ -21,13 +25,7 @@
     "socketcluster": "^14.3.2",
     "socketcluster-client": "^14.2.1"
   },
-  "keywords": [
-    "websocket",
-    "server",
-    "realtime",
-    "cluster",
-    "scalable"
-  ],
+  "keywords": [],
   "readmeFilename": "README.md",
   "scripts": {
     "start": "node server.js",
