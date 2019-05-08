@@ -71,7 +71,7 @@ class Worker extends SCWorker {
         /**
          * Handle incoming connections and listen for events.
          *
-         * Every non-private published message should include the following:
+         * Every published message should include the following:
          * {
          *     action: string,
          *     channel: string,
@@ -95,7 +95,7 @@ class Worker extends SCWorker {
                     return;
                 }
 
-                log(`Client ID ${socket.id} joined channel ${obj.channel}`);
+                log(`Client ID ${socket.id} joined channel ${obj.channel}.`);
                 socket.emit('joined', { channel: obj.channel });
 
                 // Announce the join to everyone
@@ -109,22 +109,21 @@ class Worker extends SCWorker {
             /**
              * Incoming format:
              * {
-             *     channel: string (this must be a recipient's private channel),
+             *     channel: string,
+             *     recipient: string,
              *     offer: object
              * }
              */
             socket.on('offer', (obj) => {
-                if (!obj || !obj.channel || !obj.offer) {
+                if (!obj || !obj.channel || !obj.recipient || !obj.offer) {
                     log('REJECTED: Bad offer message.');
                     log(obj);
                     return;
                 }
 
-                // Since these should only ever be private messages,
-                // don't include channel field. Messages without the field
-                // will be ignored by clients if sent to a broadcast channel
-                scServer.exchange.publish(obj.channel, {
+                scServer.exchange.publish(obj.recipient, {
                     action: 'offer',
+                    channel: obj.channel,
                     sender: socket.id,
                     offer: obj.offer
                 });
@@ -133,22 +132,21 @@ class Worker extends SCWorker {
             /**
              * Incoming format:
              * {
-             *     channel: string (this must be a recipient's private channel),
+             *     channel: string,
+             *     recipient: string,
              *     answer: object
              * }
              */
             socket.on('answer', (obj) => {
-                if (!obj || !obj.channel || !obj.answer) {
+                if (!obj || !obj.channel || !obj.recipient || !obj.answer) {
                     log('REJECTED: Bad answer message.');
                     log(obj);
                     return;
                 }
 
-                // Since these should only ever be private messages,
-                // don't include channel field. Messages without the field
-                // will be ignored by clients if sent to a broadcast channel
-                scServer.exchange.publish(obj.channel, {
+                scServer.exchange.publish(obj.recipient, {
                     action: 'answer',
+                    channel: obj.channel,
                     sender: socket.id,
                     answer: obj.answer
                 });
@@ -157,22 +155,21 @@ class Worker extends SCWorker {
             /**
              * Incoming format:
              * {
-             *     channel: string (this must be a recipient's private channel),
+             *     channel: string,
+             *     recipient: string,
              *     candidate: object
              * }
              */
             socket.on('candidate', (obj) => {
-                if (!obj || !obj.channel || !obj.candidate) {
+                if (!obj || !obj.channel || !obj.recipient || !obj.candidate) {
                     log('REJECTED: Bad candidate message.');
                     log(obj);
                     return;
                 }
 
-                // Since these should only ever be private messages,
-                // don't include channel field. Messages without the field
-                // will be ignored by clients if sent to a broadcast channel
-                scServer.exchange.publish(obj.channel, {
+                scServer.exchange.publish(obj.recipient, {
                     action: 'candidate',
+                    channel: obj.channel,
                     sender: socket.id,
                     candidate: obj.candidate
                 });
