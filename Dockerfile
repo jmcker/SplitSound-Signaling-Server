@@ -1,8 +1,8 @@
 FROM node:8-slim
 
-LABEL maintainer="Jonathan Gros-Dubois"
-LABEL version="14.3.2"
-LABEL description="Docker file for SocketCluster with support for clustering."
+LABEL maintainer="Symboxtra Software"
+LABEL version="0.2.0"
+LABEL description="Docker file for the SplitSound signaling server."
 
 RUN mkdir -p /usr/src/
 WORKDIR /usr/src/
@@ -10,6 +10,6 @@ COPY . /usr/src/
 
 RUN npm install .
 
-EXPOSE 8000
+EXPOSE 80
 
 CMD ["npm", "run", "start:docker"]
