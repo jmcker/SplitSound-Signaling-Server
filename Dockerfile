@@ -10,6 +10,6 @@ COPY . /usr/src/
 
 RUN npm install .
 
-EXPOSE 80
+EXPOSE 8080
 
 CMD ["npm", "run", "start:docker"]
