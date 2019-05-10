@@ -32,7 +32,6 @@ docker run -d --net=splitsound-net -p 8080:8080 --name=sig1 symboxtra/splitsound
 
 ## Instance shutdown: ##
 ```
-# Shutdown
 # Kill old containers
 docker kill sig1
 docker kill proxy1
@@ -41,7 +40,8 @@ docker kill proxy1
 docker network rm splitsound-net
 
 # Destroy killed containers
-docker system prune
+# Prevents name clash at startup
+docker system prune -f
 ```
 
 ## Process for goog.symboxtra.dynu.net cert: ##
