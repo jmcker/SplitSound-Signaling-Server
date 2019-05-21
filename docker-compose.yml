@@ -1,0 +1,25 @@
+version: '3.5'
+
+services:
+  proxy:
+    build:
+      context: ./proxy
+    image: symboxtra/splitsound-haproxy
+    volumes:
+      - ./proxy:/etc/ssl/private
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - splitsound-net
+
+  sig1:
+    build:
+      context: .
+    image: symboxtra/splitsound-signaling-server
+    networks:
+      - splitsound-net
+
+networks:
+  splitsound-net:
+    external: false
