@@ -6,9 +6,11 @@ LABEL description="Docker file for the SplitSound signaling server."
 
 RUN mkdir -p /usr/src/
 WORKDIR /usr/src/
-COPY . /usr/src/
+COPY package.json package-lock.json /usr/src/
 
 RUN npm install .
+
+COPY . /usr/src/
 
 EXPOSE 8080
 
