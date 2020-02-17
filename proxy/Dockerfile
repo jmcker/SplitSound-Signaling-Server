@@ -1,4 +1,4 @@
-FROM haproxy:1.9
+FROM haproxy:2.0
 
 LABEL maintainer="Symboxtra Software"
 LABEL version="1.0.0"

@@ -1,4 +1,4 @@
-version: '3.5'
+version: '3.7'
 
 services:
   proxy:
@@ -8,8 +8,8 @@ services:
     volumes:
       - ./proxy:/etc/ssl/private
     ports:
-      - 80:80
-      - 443:443
+      - 80:80/tcp
+      - 443:443/tcp
     networks:
       - splitsound-net
 
