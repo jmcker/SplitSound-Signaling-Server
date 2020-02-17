@@ -1,8 +1,7 @@
-FROM node:8-slim
+FROM node:12-buster-slim
 
 LABEL maintainer="Symboxtra Software"
-LABEL version="0.2.0"
-LABEL description="Docker file for the SplitSound signaling server."
+LABEL version="1.0.1"
 
 RUN mkdir -p /usr/src/
 WORKDIR /usr/src/
