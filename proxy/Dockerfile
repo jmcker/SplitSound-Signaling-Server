@@ -1,7 +1,6 @@
-FROM haproxy:2.0
+FROM haproxy:2.3
 
 LABEL maintainer="Symboxtra Software"
-LABEL version="2.0.0"
 
 COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
 
