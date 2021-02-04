@@ -65,15 +65,3 @@ docker network rm splitsound-net
 # Prevents name clash at startup
 docker system prune -f
 ```
-
-## Process for goog.symboxtra.dynu.net cert: ##
-1. Disable dynu.net DNS entry for goog
-2. Run certbot and renew goog cert
-3. Concatenate cert chain and private key (must be super user)
-```
-cd /etc/letsencrypt/archive/goog.symboxtra.dynu.net
-cat fullchain.pem privkey.pem > goog.symboxtra.dynu.net.pem
-chmod 600 goog.symboxtra.dynu.net
-```
-4. sftp to the Compute instance ```sftp -i ~/.ssh/goog.key.no goog```
-5. Move the concatenated cert to ```/etc/ssl/private``` on the Compute instance
